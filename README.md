@@ -1,3 +1,3 @@
-# StompClientKit
+# Stomp Client Kit
 
-A description of this package.
+A library of STOMP Client over Websocket, built on Starscream.
