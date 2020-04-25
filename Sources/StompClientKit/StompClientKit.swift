@@ -1,3 +1,3 @@
 struct StompClientKit {
-    var text = "Hello, World!"
+    var text = "Hello stomp!"
 }
