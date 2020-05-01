@@ -11,6 +11,12 @@ import Starscream
 //
 public typealias MessageHandler = (_ frame : Frame) -> Any
 
+/**
+ * Stomp Client over Websocket.
+ *
+ *  Connect to websocket, subscribe to topic,
+ *  send and receive message to / from server.
+ */
 public class StompClient : WebSocketDelegate {
     
     private var endpoint: URL
@@ -44,7 +50,10 @@ public class StompClient : WebSocketDelegate {
         underlyWebsocket.delegate = self
     }
     
-    //
+    /**
+     * Start to connect to websocket server.
+     *
+     */
     public func startConnect (onConnected handler : @escaping (_ client: StompClient) -> Any) {
         self.onConnected = handler
         underlyWebsocket.connect()
