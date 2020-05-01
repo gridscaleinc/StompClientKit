@@ -7,7 +7,8 @@
 
 import Foundation
 
-public enum CommandID {
+public enum CommandID: String {
+    case NONE
     case STOMP
     case CONNECT
     case DISCONNECT
@@ -23,5 +24,4 @@ public enum CommandID {
     case MESSAGE
     case RECEIPT
     case ERROR
-    
 }
