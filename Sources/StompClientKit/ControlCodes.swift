@@ -7,9 +7,9 @@
 
 import Foundation
 
-public enum ControlChars : String {
-    case NULL = "¥0"
-    case LF = "¥n"
-    case CR = "¥r"
+public enum ControlChars : Character {
+    case NULL = "\0"
+    case LF = "\n"
+    case CR = "\r"
     case COLON = ":"
 }

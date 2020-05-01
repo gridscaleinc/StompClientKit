@@ -14,7 +14,7 @@ public typealias MessageHandler = (_ frame : Frame) -> Any
 public class StompClient : WebSocketDelegate {
     
     private var endpoint: URL
-    private var handler : MessageHandler = {_ in }
+    public var messageHandler : MessageHandler = {_ in }
     private var underlyWebsocket : WebSocket
     
     public var wsConnected = false
@@ -45,20 +45,27 @@ public class StompClient : WebSocketDelegate {
     }
     
     //
-    public func startConnect () {
+    public func startConnect (onConnected handler : @escaping (_ client: StompClient) -> Any) {
+        self.onConnected = handler
         underlyWebsocket.connect()
+        
     }
     
     //
-    public func subscribe(to topic : String, handleby handler: @escaping MessageHandler)  -> StompClient {
-        let data = ("SUBSCRIBE\nid:sub-0\n"
-            + "destination:" + topic + "\n"
-            + "ack:client\n\n\0"
-            ).data(using: .utf8)!
+    public func subscribe(to topic : String)  -> StompClient {
+        var frame = Frame.subscribeFrame()
+        frame.addHeader(FrameHeader(k: Headers.ID.rawValue, v: "sub-0"))
+        frame.addHeader(FrameHeader(k: Headers.DESTINATION.rawValue, v: topic))
+        frame.addHeader(FrameHeader(k: Headers.ACK.rawValue, v: "client"))
+        
+        print(frame)
+        
+        let data = frame.toData()!
         
         underlyWebsocket.write(data: data)
         
-        self.handler = handler
+        print(String(data: data, encoding: .utf8)!)
+        
         return self
     }
     
@@ -78,12 +85,14 @@ public class StompClient : WebSocketDelegate {
         case .connected(let headers):
             wsConnected = true
             print("websocket is connected: \(headers)")
-            let command = Frame.connectFrame(versions: "1.2,1.1")
-            
+            var command = Frame.connectFrame(versions: "1.2,1.1")
+            command.addHeader(FrameHeader(k: Headers.HOST.rawValue, v: "192.168.11.5"))
             let data = command.toData()!
             
             underlyWebsocket.write(data: data)
-
+            
+            print(String(data: data, encoding: .utf8)!)
+            
         case .disconnected(let reason, let code):
             wsConnected = false
             print("websocket is disconnected: \(reason) with code: \(code)")
@@ -139,9 +148,11 @@ public class StompClient : WebSocketDelegate {
             // retrieve protocol version
             
             // call back to onConnected function
+            onConnected(self)
             
         } else if ( frame!.isMessage) {
         // if MESSAGE
+            messageHandler(frame!)
             
         } else if ( frame!.isReceipt) {
         // if RECEIPT
