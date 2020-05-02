@@ -88,6 +88,26 @@ public class StompClient : WebSocketDelegate {
         
     }
     
+    public func sendJson(_ msg: StompMessage) {
+        var frame = Frame.sendFrame(to: "/app/hello")
+        let encoder = JSONEncoder()
+        do {
+            let jsonData = try encoder.encode(msg)
+            frame.addHeader(FrameHeader(k: Headers.CONTENT_TYPE.rawValue, v: "application/json"))
+            frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(jsonData.count)))
+            frame.body.data = jsonData
+            
+            let data = frame.toData()!
+            
+            underlyWebsocket.write(data: data)
+            
+            print(String(data: data, encoding: .utf8)!)
+            
+        } catch {
+            print("send error", msg)
+        }
+    }
+    
     //
     public func didReceive(event: WebSocketEvent, client: WebSocket) {
         switch event {
@@ -176,6 +196,13 @@ public class StompClient : WebSocketDelegate {
     
     //
     func handleError(_ error : Error?) {
+        
+    }
+}
+
+public struct StompMessage: Codable {
+    public var name: String = ""
+    public init() {
         
     }
 }

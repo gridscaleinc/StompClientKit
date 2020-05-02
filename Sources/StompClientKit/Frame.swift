@@ -77,6 +77,12 @@ public struct Frame {
 
         return f;
     }
+    
+    static public func sendFrame(to destination: String) -> Frame {
+        var frame = Frame(command: .SEND)
+        frame.addHeader(FrameHeader(k: Headers.DESTINATION.rawValue, v: destination))
+        return frame
+    }
 }
 
 public struct FrameHeader {
