@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  StompClient.swift
 //  
 //
 //  Created by gridscale on 2020/04/25.
@@ -22,6 +22,18 @@ public class StompClient : WebSocketDelegate {
     private var endpoint: URL
     public var messageHandler : MessageHandler = {_ in }
     private var underlyWebsocket : WebSocket
+    
+    /**
+     * Optional transaction
+     *
+     *  this object created automatically by statTrx method, and desctroyed when commit, or abort.
+     */
+    public var transaction: StompTran?
+    
+    /**
+     * Subscription pool (Dictionary)
+     */
+    public var subscriptions: [String: Subscription] = [:]
     
     public var wsConnected = false
     
@@ -60,9 +72,14 @@ public class StompClient : WebSocketDelegate {
         
     }
     
-    //
+    /**
+     *
+     */
     public func subscribe(to topic : String)  -> StompClient {
+        
         var frame = Frame.subscribeFrame()
+        
+        // TODO generate id
         frame.addHeader(FrameHeader(k: Headers.ID.rawValue, v: "sub-0"))
         frame.addHeader(FrameHeader(k: Headers.DESTINATION.rawValue, v: topic))
         frame.addHeader(FrameHeader(k: Headers.ACK.rawValue, v: "client"))
@@ -78,34 +95,118 @@ public class StompClient : WebSocketDelegate {
         return self
     }
     
-    //
+    /**
+     *
+     */
     public func disconnect() {
-        
+        // send DISCONNECT with receipt header
+        // wait for RECEIPT of previous sent recipt id
+        // close the underlying websocket
     }
     
-    //
-    public func send(_ msg: String) {
-        
-    }
-    
-    public func sendJson(_ msg: StompMessage) {
-        var frame = Frame.sendFrame(to: "/app/hello")
-        let encoder = JSONEncoder()
-        do {
-            let jsonData = try encoder.encode(msg)
-            frame.addHeader(FrameHeader(k: Headers.CONTENT_TYPE.rawValue, v: "application/json"))
-            frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(jsonData.count)))
-            frame.body.data = jsonData
-            
-            let data = frame.toData()!
-            
-            underlyWebsocket.write(data: data)
-            
-            print(String(data: data, encoding: .utf8)!)
-            
-        } catch {
-            print("send error", msg)
+    /**
+     *  start a new transaction.
+     *   if
+     */
+    public func startTrx() {
+        if (transaction) {
+            return
         }
+        
+        // check if connected
+        // check if subscribed
+        
+        // start
+        self.transaction = StompTran()
+        
+        // todo:
+        // send begin fram
+        
+        var beginFrame = Frame(command: .BEGIN)
+        send(frame: beginFrame, using: .utf8)
+    }
+    
+    /**
+     *
+     */
+    public func commit() {
+        
+        if (transaction) {
+            var beginFrame = Frame(command: .COMMIT)
+            send(frame: beginFrame, using: .utf8)
+        }
+        
+        transaction = nil
+    }
+    
+    /**
+     *
+     */
+    public func rollback() {
+        
+        if (transaction) {
+            var beginFrame = Frame(command: .ABORT)
+            send(frame: beginFrame, using: .utf8)
+        }
+        
+        transaction = nil
+    }
+    
+    /**
+     * send messge using json
+     */
+    public func send(json msg: String, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "application/json") {
+        send(text: msg.toJson(), to: uri, using: encoding, contentType: contentType)
+    }
+    
+    /**
+     *
+     */
+    public func send(json msg: StompMessage, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "application/json") {
+        send(json: msg.toJson(), to: uri, using: encoding, contentType: contentType)
+    }
+    
+    /**
+     *
+     */
+    public func send(text msg: StompMessage, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
+        send(json: msg.toText(), to: uri, using: encoding, contentType: contentType)
+    }
+    
+    /**
+     *
+     */
+    public func send(text msg: String, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
+        send(data: msg.data(using: encoding), to: uri, using: encoding, contentType: contentType)
+    }
+    
+    /**
+     *
+     */
+    public func send(data: Data, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
+        
+        var frame = Frame.sendFrame(to: uri)
+        
+        frame.addHeader(FrameHeader(k: Headers.CONTENT_TYPE.rawValue, v: contentType))
+        frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(jsonData.count)))
+        frame.body.data = data
+        
+        send(frame: frame)
+    }
+    
+    /**
+     * Transaction support
+     */
+    public func send(frame: Frame, using encoding: String.Encoding? = .utf8) {
+        
+        // support transaction
+        if (transaction) {
+            frame.addHeader(FrameHeader(k: .TRANSACTION.rawValue, v: transaction!.trxId))
+        }
+        
+        let frameData = frame.toData(using: encoding)!
+        underlyWebsocket.write(data: frameData)
+        print(String(data: frameData, encoding: encoding!)!)
     }
     
     //
@@ -200,9 +301,14 @@ public class StompClient : WebSocketDelegate {
     }
 }
 
-public struct StompMessage: Codable {
-    public var name: String = ""
-    public init() {
-        
-    }
+/**
+ * Message Protocol
+ *
+ *  Object conform this protocol can be
+ */
+public protocol StompMessage {
+    func fromText(text data: String, using encoding: String.Encoding) throws -> StompMessage
+    func fromJson(json data: String, using encoding: String.Encoding) throws -> StompMessage
+    func toText () -> String
+    func toJson() -> String
 }
