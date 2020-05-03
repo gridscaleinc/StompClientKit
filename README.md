@@ -27,7 +27,7 @@ var stompclient = StompClient(endpoint: "ws://abc.example.com/anywebsocket/endpo
 stompclient.messageHandler = self.handleMessage
 stompclient.startConnect ( onConnected:  {
   client in
-  client.subscribe(to: StompConfig.GETCLOSER_GEOTAG_TOPIC_PREFIX)
+  client.subscribe(to: "/awesome/topic")
 })
 ```
 
