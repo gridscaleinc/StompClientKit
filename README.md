@@ -1,8 +1,8 @@
 # Stomp Client Kit
 
-StompClientKit is a framework library of Stomp Client, over websoket.
-[ Stomp ](https://stomp.github.io/)
-[ Starscream](https://github.com/daltoniam/Starscream)
+StompClientKit is a framework library of Stomp Client, over websoket.   
+[ Stomp ](https://stomp.github.io/)   
+[ Starscream](https://github.com/daltoniam/Starscream)   
 
 # Features
 
@@ -57,7 +57,7 @@ func handleMessage(frame: Frame)  {
 ### Sending Text Message
 ```
     let text = "hello!"
-    client.send(json: text, to:"/app/sayhello", using:.utf8, conentType:"text/plain")
+    client.send(text: text, to:"/app/sayhello", using:.utf8, conentType:"text/plain")
 ```
 
 ### Sending by Object conform to StompMessage Protocol
