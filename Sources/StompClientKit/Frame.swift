@@ -166,7 +166,7 @@ public class FrameParser {
         var key = "", value = ""
         var body = ""
         
-        for (n,ch) in text.enumerated() {
+        for (_ , ch) in text.enumerated() {
             switch stage {
             case .command:
                 if (ch == ControlChars.CR.rawValue) {

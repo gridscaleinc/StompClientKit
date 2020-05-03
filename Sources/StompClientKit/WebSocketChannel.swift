@@ -41,16 +41,21 @@ public protocol WebSocketChannel: class {
     /**
      * Sending Data to websocket server.
      */
-    func send(data: Data)
+    func write(data: Data)
     
     /**
      * Property
      * Handler of received data from websocket message channel.
      */
-    var receiver: DataReceiver { get set}
+    var delegate: WebSocketChannelDelegate { get set}
 }
 
 /**
  *
  */
-public typealias DataReceiver = (_ data: Data, _ channel: WebSocketChannel) -> Any
+public protocol WebSocketChannelDelegate {
+    func onChannelConnected()
+    func onChannelDisConnected()
+    func onText(received text: String)
+    func onChannelError(_ error: Error)
+}

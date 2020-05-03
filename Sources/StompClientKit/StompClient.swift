@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Starscream
 
 //
 public typealias MessageHandler = (_ frame : Frame) -> Any
@@ -17,11 +16,10 @@ public typealias MessageHandler = (_ frame : Frame) -> Any
  *  Connect to websocket, subscribe to topic,
  *  send and receive message to / from server.
  */
-public class StompClient : WebSocketDelegate {
+public class StompClient: WebSocketChannelDelegate {
     
-    private var endpoint: URL
     public var messageHandler : MessageHandler = {_ in }
-    private var underlyWebsocket : WebSocket
+    private var underlyWebsocket : WebSocketChannel
     
     /**
      * Optional transaction
@@ -49,27 +47,64 @@ public class StompClient : WebSocketDelegate {
     private var heartbeat = 0
     
     // On Connected Handling callback hook.
-    private var onConnected : (_ client: StompClient) -> Any = {_ in }
+    private var onStompConnected : (_ client: StompClient) -> Any = {_ in }
     
     // intilize the underlying websocket object.
     // at this point, the websocket had not connected to server yet.
     public init(endpoint url : String) {
-        self.endpoint = URL(string: url)!
-        var request = URLRequest(url: endpoint)
-        
-        request.timeoutInterval = 5
-        underlyWebsocket = WebSocket(request: request)
-        underlyWebsocket.delegate = self
+        underlyWebsocket = StarscreamWSChannel(url: url)
     }
+    
+    /**
+     *
+     */
+    public init(over channel: WebSocketChannel) {
+        underlyWebsocket = channel
+    }
+    
+    /**
+     * to Conform WebSocketChannelDelegate
+     */
+    public func onChannelConnected () {
+        var command = Frame.connectFrame(versions: "1.2,1.1")
+        command.addHeader(FrameHeader(k: Headers.HOST.rawValue, v: "192.168.11.5"))
+        let data = command.toData()!
+
+        underlyWebsocket.write(data: data)
+
+        print(String(data: data, encoding: .utf8)!)
+    }
+    
+    /**
+     *
+     */
+    public func onChannelDisConnected() {
+        
+    }
+    
+    /**
+     *
+     */
+    public func onText(received text: String) {
+        // handle stomp frame
+        handleFrame(text: text)
+    }
+    
+    /**
+     *
+     */
+    public func onChannelError(_ error: Error) {
+        //
+    }
+    
     
     /**
      * Start to connect to websocket server.
      *
      */
     public func startConnect (onConnected handler : @escaping (_ client: StompClient) -> Any) {
-        self.onConnected = handler
+        self.onStompConnected = handler
         underlyWebsocket.connect()
-        
     }
     
     /**
@@ -209,53 +244,6 @@ public class StompClient : WebSocketDelegate {
         print(String(data: frameData, encoding: encoding!)!)
     }
     
-    //
-    public func didReceive(event: WebSocketEvent, client: WebSocket) {
-        switch event {
-        case .connected(let headers):
-            wsConnected = true
-            print("websocket is connected: \(headers)")
-            var command = Frame.connectFrame(versions: "1.2,1.1")
-            command.addHeader(FrameHeader(k: Headers.HOST.rawValue, v: "192.168.11.5"))
-            let data = command.toData()!
-            
-            underlyWebsocket.write(data: data)
-            
-            print(String(data: data, encoding: .utf8)!)
-            
-        case .disconnected(let reason, let code):
-            wsConnected = false
-            print("websocket is disconnected: \(reason) with code: \(code)")
-            
-        case .text(let string):
-            print("Received text: \(string)")
-            // handle stomp frame
-            handleFrame(text: string)
-            
-        case .binary(let data):
-            // Exception: a stomp client expects no binary data
-            print("Received data: \(data.count)")
-            
-        case .ping(_):
-            break
-            
-        case .pong(_):
-            break
-            
-        case .viabilityChanged(_):
-            break
-            
-        case .reconnectSuggested(_):
-            break
-            
-        case .cancelled:
-            wsConnected = false
-            
-        case .error(let error):
-            wsConnected = false
-            handleError(error )
-        }
-    }
     
     // Handle Frame text from server, update client status or call message handler
     // according to the content of the frame.
@@ -278,11 +266,11 @@ public class StompClient : WebSocketDelegate {
             // retrieve protocol version
             
             // call back to onConnected function
-            onConnected(self)
+            _ = onStompConnected(self)
             
         } else if ( frame!.isMessage) {
         // if MESSAGE
-            messageHandler(frame!)
+            _ = messageHandler(frame!)
             
         } else if ( frame!.isReceipt) {
         // if RECEIPT
@@ -293,11 +281,6 @@ public class StompClient : WebSocketDelegate {
         } else {
             // exception
         }
-    }
-    
-    //
-    func handleError(_ error : Error?) {
-        
     }
 }
 
