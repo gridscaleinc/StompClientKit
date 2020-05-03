@@ -7,11 +7,12 @@ StompClientKit is a framework library of Stomp Client, over websoket.
 # Features
 
    . Targeted Users
-       Developers who want to use Stomp as a wire protocol to handle webcoket frames.
+       Developers who want to use Stomp as a wire protocol to handle webcoket frames.   
  
-   . Supported Stomp Versions
+   . Supported Stomp Versions   
        1.0 up to 1.2
-   .  Supported Swift and Xcode version
+       
+   .  Supported Swift and Xcode version   
        This library was developed in the environment of Xcode11, Swift5.2. Use it for other versions at your own discretion.
 
 # Usage
