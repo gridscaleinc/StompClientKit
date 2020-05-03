@@ -113,7 +113,7 @@ public enum Headers: String {
     case ID = "id"
     case DESTINATION = "destination"
     case ACK = "ack"
-    case TRANSCACTION = "transaction"
+    case TRANSACTION = "transaction"
     
 }
 

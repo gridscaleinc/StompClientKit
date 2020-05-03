@@ -18,8 +18,9 @@ public struct StompTran {
     /**
      *
      */
-    private func generateTrxId() -> String {
-        return "trx-" + (tranSeqence++) + "-" + Int.random(in: 1000..9999)
+    private static func generateTrxId() -> String {
+        tranSequence += 1
+        return "trx-" + String(tranSequence) + "-" + String(Int.random(in: (1000...9999)))
     }
 
 }

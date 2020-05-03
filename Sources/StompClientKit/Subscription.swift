@@ -8,14 +8,15 @@
 import Foundation
 
 
-struct Subscription {
+public struct Subscription {
     public var subId = generateSubId()
     private static var subscriptionSequence = 1
     
     /**
      *
      */
-    private func generateSubId() -> String {
-        return "sub-" + (subscriptionSequence++)
+    private static func generateSubId() -> String {
+        subscriptionSequence += 1
+        return "sub-" + (String(subscriptionSequence))
     }
 }

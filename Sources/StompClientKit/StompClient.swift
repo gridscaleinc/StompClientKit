@@ -109,7 +109,7 @@ public class StompClient : WebSocketDelegate {
      *   if
      */
     public func startTrx() {
-        if (transaction) {
+        if (transaction == nil) {
             return
         }
         
@@ -123,7 +123,7 @@ public class StompClient : WebSocketDelegate {
         // send begin fram
         
         var beginFrame = Frame(command: .BEGIN)
-        send(frame: beginFrame, using: .utf8)
+        send(frame: &beginFrame, using: .utf8)
     }
     
     /**
@@ -131,9 +131,9 @@ public class StompClient : WebSocketDelegate {
      */
     public func commit() {
         
-        if (transaction) {
+        if (transaction == nil) {
             var beginFrame = Frame(command: .COMMIT)
-            send(frame: beginFrame, using: .utf8)
+            send(frame: &beginFrame, using: .utf8)
         }
         
         transaction = nil
@@ -144,9 +144,9 @@ public class StompClient : WebSocketDelegate {
      */
     public func rollback() {
         
-        if (transaction) {
+        if (transaction == nil) {
             var beginFrame = Frame(command: .ABORT)
-            send(frame: beginFrame, using: .utf8)
+            send(frame: &beginFrame, using: .utf8)
         }
         
         transaction = nil
@@ -156,7 +156,7 @@ public class StompClient : WebSocketDelegate {
      * send messge using json
      */
     public func send(json msg: String, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "application/json") {
-        send(text: msg.toJson(), to: uri, using: encoding, contentType: contentType)
+        send(text: msg, to: uri, using: encoding, contentType: contentType)
     }
     
     /**
@@ -177,7 +177,7 @@ public class StompClient : WebSocketDelegate {
      *
      */
     public func send(text msg: String, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
-        send(data: msg.data(using: encoding), to: uri, using: encoding, contentType: contentType)
+        send(data: msg.data(using: encoding!)!, to: uri, using: encoding, contentType: contentType)
     }
     
     /**
@@ -188,23 +188,23 @@ public class StompClient : WebSocketDelegate {
         var frame = Frame.sendFrame(to: uri)
         
         frame.addHeader(FrameHeader(k: Headers.CONTENT_TYPE.rawValue, v: contentType))
-        frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(jsonData.count)))
+        frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(data.count)))
         frame.body.data = data
         
-        send(frame: frame)
+        send(frame: &frame)
     }
     
     /**
      * Transaction support
      */
-    public func send(frame: Frame, using encoding: String.Encoding? = .utf8) {
+    public func send(frame: inout Frame, using encoding: String.Encoding? = .utf8) {
         
         // support transaction
-        if (transaction) {
-            frame.addHeader(FrameHeader(k: .TRANSACTION.rawValue, v: transaction!.trxId))
+        if (transaction == nil) {
+            frame.addHeader(FrameHeader(k: Headers.TRANSACTION.rawValue, v: transaction!.trxId))
         }
         
-        let frameData = frame.toData(using: encoding)!
+        let frameData = frame.toData(using: encoding!)!
         underlyWebsocket.write(data: frameData)
         print(String(data: frameData, encoding: encoding!)!)
     }
