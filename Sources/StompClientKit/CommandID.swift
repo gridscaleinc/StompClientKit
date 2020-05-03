@@ -7,8 +7,12 @@
 
 import Foundation
 
+/**
+ * Enum of Stomp Command ID
+ *  Since Stomp 1.2
+ */
 public enum CommandID: String {
-    case NONE
+    
     case STOMP
     case CONNECT
     case DISCONNECT
