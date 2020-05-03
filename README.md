@@ -71,4 +71,25 @@ client.send(text: stompMsgObj, to:"/app/sayhello", using:.utf8, conentType:"text
 
 
 
+#Installation
+For now, StompClientKit supports only Swift Package Manager. 
 
+Add following dependency to your Swift Project.
+
+'''
+Xcode -> File -> Swift Packages   
+  -> Add Package Dependences
+'''
+
+For Package developer: 
+add following lines to your Package.swift file.   
+
+```
+dependencies: [
+    .Package(url: "https://github.com/gridscaleinc/StompClientKit.git", majorVersion: x)
+]
+```
+
+
+#License
+Licensed under the Apache v2 License.
