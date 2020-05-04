@@ -53,6 +53,7 @@ public class StompClient: WebSocketChannelDelegate {
     // at this point, the websocket had not connected to server yet.
     public init(endpoint url : String) {
         underlyWebsocket = StarscreamWSChannel(url: url)
+        underlyWebsocket.delegate = self
     }
     
     /**
@@ -60,6 +61,7 @@ public class StompClient: WebSocketChannelDelegate {
      */
     public init(over channel: WebSocketChannel) {
         underlyWebsocket = channel
+        underlyWebsocket.delegate = self
     }
     
     /**
