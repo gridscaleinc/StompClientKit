@@ -235,7 +235,7 @@ public class StompClient: WebSocketChannelDelegate {
     public func send(frame: inout Frame, using encoding: String.Encoding? = .utf8) {
         
         // support transaction
-        if (transaction == nil) {
+        if (transaction != nil) {
             frame.addHeader(FrameHeader(k: Headers.TRANSACTION.rawValue, v: transaction!.trxId))
         }
         
