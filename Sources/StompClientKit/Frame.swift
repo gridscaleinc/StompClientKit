@@ -7,77 +7,117 @@
 
 import Foundation
 
+/**
+ * StompFrame Struct
+ *
+ * A stomp frame is consist of Comman, Headers, and an optional body.
+ *
+ */
 public struct Frame {
     
+    /// Command ID
+    ///
     private var cid : CommandID = .CONNECT
-    private var headers: [FrameHeader] = []
-    public var body: FrameBody = FrameBody()
     
-    //
+    /// Headers
+    private var headers: [FrameHeader] = []
+    
+    /// Frame Body
+    public var body: Data = Data()
+    
+    
+    /// Constructor
+    ///
+    /// - Parameter id: mandatory command id.
     public init(command id: CommandID ) {
         cid = id
     }
     
-    //
+    
+    /// Add Header
+    ///
+    /// - Parameter header: new Header
     public mutating func addHeader(_ header: FrameHeader) {
         self.headers.append(header)
     }
     
-    //
-    public func toData(using encoding: String.Encoding = .utf8) -> Data? {
-        var s = ""
-        s += cid.rawValue
-        s.append(ControlChars.LF.rawValue)
+    /// Payload
+    /// Computed Property that builds a payload of the frame for sending
+    ///
+    public var payload : Data {
+        var commandAndHeaders = ""
+        commandAndHeaders += cid.rawValue
+        commandAndHeaders.append(ControlChars.LF.rawValue)
         
         for h in headers {
-            s += h.text()
-            s.append(ControlChars.LF.rawValue)
+            commandAndHeaders += h.text()
+            commandAndHeaders.append(ControlChars.LF.rawValue)
         }
         
-        s.append(ControlChars.LF.rawValue)
-        s += body.text
-        s.append(ControlChars.NULL.rawValue)
+        commandAndHeaders.append(ControlChars.LF.rawValue)
+
+        // payload
+        var pl = Data()
+        pl.append(commandAndHeaders.data(using: .utf8)!)
+        pl.append(0)
         
-        return s.data(using: encoding)
+        return pl
         
     }
     
+    /// Determine if it is a CONNECT header
+    ///
     var isConnected : Bool {
         return (cid == CommandID.CONNECTED)
     }
     
+    /// Determine if it is a CONNECT header
     var isReceipt : Bool {
         return (cid == CommandID.RECEIPT)
     }
     
-    
+    /// Determine if it is a CONNECT header
     var isMessage : Bool {
         return (cid == CommandID.MESSAGE)
     }
     
+    /// Determine if it is a CONNECT header
     var isError : Bool {
         return (cid == CommandID.ERROR)
     }
     
-    //
+    
+    /// Build a CONNECT Frame.
+    ///
+    /// - Parameter versions: accept versions
+    /// - Returns: a Frame with a CONNECT command.
     static public func connectFrame(versions: String = "1.2,1.1") -> Frame {
         var f = Frame(command: .CONNECT)
         f.headers.append(FrameHeader(k: Headers.ACCEPT_VERSION.rawValue, v: versions))
         return f;
     }
     
+    /// Build a CONNECTED Frame.
+    /// - Returns: a Frame with a CONNECTED Command.
     static public func connectedFrame() -> Frame {
         let f = Frame(command: .CONNECTED)
 
         return f;
     }
     
+    
+    /// Build a SUBSCRIBE Frame
+    ///
+    /// - Returns: a frame with a SUBSCRIBE Command.
     static public func subscribeFrame() -> Frame {
         let f = Frame(command: .SUBSCRIBE)
 
         return f;
     }
     
+    /// Build a SEND Frame
+    ///
+    /// - Returns: a frame for SEND Command
     static public func sendFrame(to destination: String) -> Frame {
         var frame = Frame(command: .SEND)
         frame.addHeader(FrameHeader(k: Headers.DESTINATION.rawValue, v: destination))
@@ -85,24 +125,30 @@ public struct Frame {
     }
 }
 
+
+/**
+ * FrameHeader
+ */
 public struct FrameHeader {
     var key: String
     var value: String
     
-    //
-    //
+    /// Constructor
+    ///
     public init(k: String, v:String) {
         self.key = k
         self.value = v
     }
     
-    //
+    /// Text that represents the header.
     public func text() -> String {
         return key + String(ControlChars.COLON.rawValue) + value
     }
 }
 
-//
+/**
+ * Headers ENUM.
+ */
 public enum Headers: String {
     case ACCEPT_VERSION = "accept-version"
     case HEART_BEATE = "heart-beat"
@@ -117,41 +163,17 @@ public enum Headers: String {
     
 }
 
-
-public struct FrameBody {
-    
-    private var _data = Data()
-    
-    public var data : Data {
-        get {
-            return _data
-        }
-        set {
-            _data = newValue
-        }
-    }
-    
-    private var encoding = String.Encoding.utf8
-    
-    //
-    public var text : String {
-        let t = String(data: data, encoding: encoding)
-        if (t == nil) {
-            return ""
-        } else {
-            return t!
-        }
-    }
-}
-
-//
-public class FrameParser {
-    private var stompVersion : StompVersions = .UNKNOWN
+/**
+ *  A Frame Parser
+ */
+class FrameParser {
+    private var stompVersion : StompVersion = .UNKNOWN
     
     public var resultFrame : Frame?
     
-    //
-    public init(as version: StompVersions) {
+    ///
+    ///
+    public init(accepted version: StompVersion) {
         self.stompVersion = version
     }
     
@@ -216,12 +238,12 @@ public class FrameParser {
         if (frame == nil) {
             resultFrame = nil
         } else {
-            frame!.body.data = body.data(using: .utf8)!
+            frame!.body = body.data(using: .utf8)!
             resultFrame = frame
         }
     }
     
-    //
+    /// Construct a template frame.
     private func constructFrame(_ command: String) -> Frame? {
         if ("CONNECTED" == command) {
             return  Frame(command: CommandID.CONNECTED)
@@ -237,11 +259,13 @@ public class FrameParser {
     }
 }
 
+/**
+ * Enum that repersents Frame parsing stage.
+ */
 enum ParseStage {
     case command
     case headerKey
     case headerValue
     case body
     case end
-    
 }

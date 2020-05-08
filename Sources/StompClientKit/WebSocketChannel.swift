@@ -44,6 +44,11 @@ public protocol WebSocketChannel: class {
     func write(data: Data)
     
     /**
+     * Sending text to websocket server.
+     */
+    func write(text: Data)
+    
+    /**
      * Property
      * Handler of received data from websocket message channel.
      */

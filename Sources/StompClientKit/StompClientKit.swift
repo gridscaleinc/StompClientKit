@@ -18,7 +18,7 @@ public struct StompClientKit {
  *   Supported Versions.
  *  StompClientKit supports STOMP versions from 1.0 to 1.2.
  */
-public enum StompVersions: String {
+public enum StompVersion: String {
     case VER1_0 = "1.0"
     case VER1_1 = "1.1"
     case VER1_2 = "1.2"

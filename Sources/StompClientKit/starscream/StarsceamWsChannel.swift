@@ -41,6 +41,13 @@ class StarscreamWSChannel: WebSocketChannel, WebSocketDelegate {
     }
     
     /**
+     * Sending text to websocket server.
+     */
+    func write(text: Data) {
+        _ws.write(stringData: text, completion: {})
+    }
+    
+    /**
      *
      */
     public var delegate: WebSocketChannelDelegate {

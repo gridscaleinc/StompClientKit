@@ -8,7 +8,7 @@
 import Foundation
 
 //
-public typealias MessageHandler = (_ frame : Frame) -> Any
+public typealias MessageHandler = (_ message : Frame) -> Any
 
 /**
  * Stomp Client over Websocket.
@@ -41,7 +41,7 @@ public class StompClient: WebSocketChannelDelegate {
     
     // STOMP Protocol version
     // initially UNKNOWN was set, after handshake, the really version will be set.
-    private var version = StompVersions.UNKNOWN
+    private var version = StompVersion.UNKNOWN
     
     // STOMP Heart beat value. 0 means not send.
     private var heartbeat = 0
@@ -70,8 +70,9 @@ public class StompClient: WebSocketChannelDelegate {
     public func onChannelConnected () {
         var command = Frame.connectFrame(versions: "1.2,1.1")
         command.addHeader(FrameHeader(k: Headers.HOST.rawValue, v: "192.168.11.5"))
-        let data = command.toData()!
+        let data = command.payload
 
+        // TODO : Change to  write text
         underlyWebsocket.write(data: data)
 
         print(String(data: data, encoding: .utf8)!)
@@ -123,7 +124,7 @@ public class StompClient: WebSocketChannelDelegate {
         
         print(frame)
         
-        let data = frame.toData()!
+        let data = frame.payload
         
         underlyWebsocket.write(data: data)
         
@@ -220,13 +221,20 @@ public class StompClient: WebSocketChannelDelegate {
     /**
      *
      */
+    public func send(mime data: MimeData, to uri: String) {
+        
+    }
+    
+    /**
+     *
+     */
     public func send(data: Data, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
         
         var frame = Frame.sendFrame(to: uri)
-        
+
         frame.addHeader(FrameHeader(k: Headers.CONTENT_TYPE.rawValue, v: contentType))
         frame.addHeader(FrameHeader(k: Headers.CONTENT_LENGTH.rawValue, v: String(data.count)))
-        frame.body.data = data
+        frame.body = data
         
         send(frame: &frame)
     }
@@ -241,7 +249,7 @@ public class StompClient: WebSocketChannelDelegate {
             frame.addHeader(FrameHeader(k: Headers.TRANSACTION.rawValue, v: transaction!.trxId))
         }
         
-        let frameData = frame.toData(using: encoding!)!
+        let frameData = frame.payload
         underlyWebsocket.write(data: frameData)
         print(String(data: frameData, encoding: encoding!)!)
     }
@@ -252,7 +260,7 @@ public class StompClient: WebSocketChannelDelegate {
     func handleFrame(text: String) {
         // check
         
-        let parser = FrameParser(as: .VER1_2)
+        let parser = FrameParser(accepted: .VER1_2)
         parser.parse(text: text)
         
         let frame = parser.resultFrame
@@ -272,6 +280,7 @@ public class StompClient: WebSocketChannelDelegate {
             
         } else if ( frame!.isMessage) {
         // if MESSAGE
+//            let message = buildMessage(frame!)
             _ = messageHandler(frame!)
             
         } else if ( frame!.isReceipt) {
