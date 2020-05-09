@@ -70,6 +70,10 @@ public protocol WebSocketChannelDelegate {
     /// - Parameter text: Text that received from websocket server.
     func onText(received text: String)
     
+    /// Binary Data handler
+    /// - Parameter data: Data that received from websocket server.
+    func onBinaryData(received data: Data)
+    
     ///  Error handler
     /// - Parameter error: <#error description#>
     func onChannelError(_ error: Error)

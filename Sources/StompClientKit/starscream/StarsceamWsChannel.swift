@@ -8,6 +8,8 @@
 import Foundation
 import Starscream
 
+
+/// WebsocketChannel implemented using starscream.
 class StarscreamWSChannel: WebSocketChannel, WebSocketDelegate {
     
     private var _delegate : WebSocketChannelDelegate = DefaultDelegate()
@@ -99,7 +101,9 @@ class StarscreamWSChannel: WebSocketChannel, WebSocketDelegate {
     
 }
 
+/// Default implementation of WebSocketChannelDelegate
 private class DefaultDelegate: WebSocketChannelDelegate {
+    
     /**
      * Default Implementation. doing nothing
      */
@@ -118,6 +122,13 @@ private class DefaultDelegate: WebSocketChannelDelegate {
      * Default Implementation. doing nothing
      */
     func onText(received text: String) {
+        
+    }
+    
+    /// Description
+    ///
+    /// - Parameter data: binary data received
+    func onBinaryData(received data: Data) {
         
     }
     

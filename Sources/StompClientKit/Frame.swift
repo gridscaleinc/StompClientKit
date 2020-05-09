@@ -86,7 +86,6 @@ public struct Frame {
         return (cid == CommandID.ERROR)
     }
     
-    
     /// Build a CONNECT Frame.
     ///
     /// - Parameter versions: accept versions
@@ -94,7 +93,7 @@ public struct Frame {
     static public func connectFrame(versions: String = "1.2,1.1") -> Frame {
         var f = Frame(command: .CONNECT)
         f.headers.append(FrameHeader(k: Headers.ACCEPT_VERSION.rawValue, v: versions))
-        return f;
+        return f
     }
     
     /// Build a CONNECTED Frame.
@@ -102,9 +101,8 @@ public struct Frame {
     static public func connectedFrame() -> Frame {
         let f = Frame(command: .CONNECTED)
 
-        return f;
+        return f
     }
-    
     
     /// Build a SUBSCRIBE Frame
     ///
@@ -112,7 +110,7 @@ public struct Frame {
     static public func subscribeFrame() -> Frame {
         let f = Frame(command: .SUBSCRIBE)
 
-        return f;
+        return f
     }
     
     /// Build a SEND Frame
@@ -124,7 +122,6 @@ public struct Frame {
         return frame
     }
 }
-
 
 /**
  * FrameHeader
@@ -177,7 +174,92 @@ class FrameParser {
         self.stompVersion = version
     }
     
-    //
+    /// Binary data parsing
+    ///
+    /// - Parameter data: frame data, includes command and headers and body.
+    public func parse(data: Data) {
+        var frame : Frame? = nil
+        
+        var command = ""
+        var headers : [FrameHeader] = []
+        
+        var stage = ParseStage.command
+        var key = "", value = ""
+        var body = Data()
+        var bodyLength = 0
+        var contentLengthValue = 0
+        
+        for (_, ch) in data.enumerated() {
+            switch stage {
+            case .command:
+                if (ch == ControlChars.CR.rawValue.asciiValue) {
+                    continue
+                } else if (ch == ControlChars.LF.rawValue.asciiValue) {
+                    frame = constructFrame(command)
+                    stage = .headerKey
+                } else {
+                    command.append(Character(UnicodeScalar(ch)))
+                }
+            case .headerKey:
+                if (ch == ControlChars.CR.rawValue.asciiValue) {
+                    continue
+                } else if (ch == ControlChars.LF.rawValue.asciiValue) {
+                    stage = .body
+                } else if (ch == ControlChars.COLON.rawValue.asciiValue) {
+                    stage = .headerValue
+                } else {
+                    key.append(Character(UnicodeScalar(ch)))
+                }
+            case .headerValue:
+                if (ch == ControlChars.CR.rawValue.asciiValue) {
+                    continue
+                } else if (ch == ControlChars.LF.rawValue.asciiValue) {
+                    let header = FrameHeader(k: key, v: value)
+                    if (frame != nil) {
+                        frame!.addHeader(header)
+                        if (header.key=="content-length") {
+                            contentLengthValue = Int(header.value)!
+                            // TODO: Max Content-Length validate
+                        }
+                    }
+                    headers.append(header)
+                    key = ""
+                    value = ""
+                    stage = .headerKey
+                } else {
+                    value.append(Character(UnicodeScalar(ch)))
+                }
+            case .body:
+                if (ch == ControlChars.NULL.rawValue.asciiValue) {
+                    stage = .end
+                } else {
+                    body.append(ch)
+                    bodyLength += 1
+                }
+                
+                if (contentLengthValue == bodyLength) {
+                    stage = .end
+                }
+                
+            case .end:
+                if (ch != ControlChars.NULL.rawValue.asciiValue) {
+                    // Handle abnormall data
+                }
+            }
+        }
+        
+        if (frame == nil) {
+            resultFrame = nil
+        } else {
+            frame!.body = body
+            resultFrame = frame
+        }
+    }
+    
+    
+    /// Parsing Frame as Text
+    ///
+    /// - Parameter text: frame text
     public func parse(text: String) {
         var frame : Frame? = nil
         
@@ -186,9 +268,10 @@ class FrameParser {
         
         var stage = ParseStage.command
         var key = "", value = ""
-        var body = ""
+        var body = "", bodyLength = 0
+        var contentLengthValue = 0
         
-        for (_ , ch) in text.enumerated() {
+        for (_, ch) in text.enumerated() {
             switch stage {
             case .command:
                 if (ch == ControlChars.CR.rawValue) {
@@ -216,6 +299,10 @@ class FrameParser {
                     let header = FrameHeader(k: key, v: value)
                     if (frame != nil) {
                         frame!.addHeader(header)
+                        if (header.key=="content-length") {
+                            contentLengthValue = Int(header.value)!
+                            // TODO: Max Content-Length validate
+                        }
                     }
                     headers.append(header)
                     key = ""
@@ -229,8 +316,15 @@ class FrameParser {
                     stage = .end
                 } else {
                     body.append(ch)
+                    bodyLength += 1
+                }
+                if (contentLengthValue == bodyLength) {
+                    stage = .end
                 }
             case .end:
+                if (ch != ControlChars.NULL.rawValue) {
+                    // Handle abnormall data
+                }
                 break
             }
         }

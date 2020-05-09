@@ -90,7 +90,12 @@ public class StompClient: WebSocketChannelDelegate {
      */
     public func onText(received text: String) {
         // handle stomp frame
-        handleFrame(text: text)
+        handleRecevedText(text: text)
+    }
+    
+    public func onBinaryData(received data: Data) {
+        // handle stomp frame
+        handleRecevedData(data: data)
     }
     
     /**
@@ -254,10 +259,26 @@ public class StompClient: WebSocketChannelDelegate {
         print(String(data: frameData, encoding: encoding!)!)
     }
     
+    /// Binary Data Handling
+    /// - Parameter data: data received from websocket channel
+    func handleRecevedData(data: Data) {
+        // check
+        
+        let parser = FrameParser(accepted: .VER1_2)
+        parser.parse(data: data)
+        
+        let frame = parser.resultFrame
+        
+        if (frame == nil) {
+            return
+        }
+        
+        handleReceivedFrame(frame: frame!)
+    }
     
     // Handle Frame text from server, update client status or call message handler
     // according to the content of the frame.
-    func handleFrame(text: String) {
+    func handleRecevedText(text: String) {
         // check
         
         let parser = FrameParser(accepted: .VER1_2)
@@ -269,8 +290,16 @@ public class StompClient: WebSocketChannelDelegate {
             return
         }
         
+        handleReceivedFrame(frame: frame!)
+        
+    }
+    
+    /// Handling received frame
+    ///
+    /// - Parameter frame: received frame
+    private func handleReceivedFrame(frame: Frame) {
         // if CONNECTED
-        if (frame!.isConnected) {
+        if (frame.isConnected) {
             status = .CONNECTED
             // retrieve heart beat
             // retrieve protocol version
@@ -278,15 +307,15 @@ public class StompClient: WebSocketChannelDelegate {
             // call back to onConnected function
             _ = onStompConnected(self)
             
-        } else if ( frame!.isMessage) {
+        } else if ( frame.isMessage) {
         // if MESSAGE
-//            let message = buildMessage(frame!)
-            _ = messageHandler(frame!)
+        // let message = buildMessage(frame!)
+            _ = messageHandler(frame)
             
-        } else if ( frame!.isReceipt) {
+        } else if ( frame.isReceipt) {
         // if RECEIPT
             
-        } else if ( frame!.isError) {
+        } else if ( frame.isError) {
         // if ERROR
             
         } else {
