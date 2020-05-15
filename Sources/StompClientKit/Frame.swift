@@ -33,7 +33,6 @@ public struct Frame {
         cid = id
     }
     
-    
     /// Add Header
     ///
     /// - Parameter header: new Header
@@ -65,25 +64,61 @@ public struct Frame {
         
     }
     
-    /// Determine if it is a CONNECT header
+    /// subscription Id Property
+    public var subscriptionId: String? {
+        for h in headers {
+            if h.key=="subscription" {
+                return h.value
+            }
+        }
+        return nil
+    }
+    
+    /// Determine if it is a CONNECT frame
     ///
-    var isConnected : Bool {
+    public var isConnected : Bool {
         return (cid == CommandID.CONNECTED)
     }
     
-    /// Determine if it is a CONNECT header
-    var isReceipt : Bool {
+    /// Determine if it is a CONNECT frame
+    public var isReceipt : Bool {
         return (cid == CommandID.RECEIPT)
     }
     
-    /// Determine if it is a CONNECT header
-    var isMessage : Bool {
+    /// Determine if it is a CONNECT frame
+    public var isMessage : Bool {
         return (cid == CommandID.MESSAGE)
     }
     
-    /// Determine if it is a CONNECT header
-    var isError : Bool {
+    /// Determine if it is a CONNECT frame
+    public var isError : Bool {
         return (cid == CommandID.ERROR)
+    }
+    
+    /// Determine if it is a Audio frame
+    ///
+    public var isAudio : Bool {
+        for h in headers {
+            if h.key=="content-type" {
+                if (h.value.contains("audio/")) {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+    
+    /// Determine if it is a Image frame
+    ///
+    public var isImage : Bool {
+        for h in headers {
+            if h.key=="content-type" {
+                if (h.value.contains("image/")) {
+                    return true
+                }
+            }
+        }
+        return false
     }
     
     /// Build a CONNECT Frame.
@@ -157,7 +192,11 @@ public enum Headers: String {
     case DESTINATION = "destination"
     case ACK = "ack"
     case TRANSACTION = "transaction"
-    
+    case X_ORIGINATOR = "x-originator"
+    case X_DESTINATION = "x-destination"
+    case X_LOCATION = "x-location"
+    case X_MESSAGE_ID = "x-message-id"
+    case X_ENTITY =  "x-entity"
 }
 
 /**
@@ -363,3 +402,4 @@ enum ParseStage {
     case body
     case end
 }
+

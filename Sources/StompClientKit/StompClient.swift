@@ -6,9 +6,11 @@
 //
 
 import Foundation
+import Combine
+import UIKit
 
 //
-public typealias MessageHandler = (_ message : Frame) -> Any
+public typealias MessageHandler = (_ message : Frame) -> Void
 
 /**
  * Stomp Client over Websocket.
@@ -18,7 +20,6 @@ public typealias MessageHandler = (_ message : Frame) -> Any
  */
 public class StompClient: WebSocketChannelDelegate {
     
-    public var messageHandler : MessageHandler = {_ in }
     private var underlyWebsocket : WebSocketChannel
     
     /**
@@ -47,7 +48,7 @@ public class StompClient: WebSocketChannelDelegate {
     private var heartbeat = 0
     
     // On Connected Handling callback hook.
-    private var onStompConnected : (_ client: StompClient) -> Any = {_ in }
+    private var onStompConnected : (_ client: StompClient) -> Void = {_ in }
     
     // intilize the underlying websocket object.
     // at this point, the websocket had not connected to server yet.
@@ -110,17 +111,23 @@ public class StompClient: WebSocketChannelDelegate {
      * Start to connect to websocket server.
      *
      */
-    public func startConnect (onConnected handler : @escaping (_ client: StompClient) -> Any) {
+    public func startConnect (onConnected handler: @escaping (_ client: StompClient) -> Void) -> Self {
+        
         self.onStompConnected = handler
         underlyWebsocket.connect()
+        
+        return self
     }
     
     /**
      *
      */
-    public func subscribe(to topic : String)  -> StompClient {
+    public func subscribe(to topic : String) -> Subscription {
         
         var frame = Frame.subscribeFrame()
+        
+        var subscription = Subscription()
+        subscriptions[subscription.subId] = subscription
         
         // TODO generate id
         frame.addHeader(FrameHeader(k: Headers.ID.rawValue, v: "sub-0"))
@@ -135,7 +142,7 @@ public class StompClient: WebSocketChannelDelegate {
         
         print(String(data: data, encoding: .utf8)!)
         
-        return self
+        return subscription
     }
     
     /**
@@ -166,7 +173,7 @@ public class StompClient: WebSocketChannelDelegate {
         // send begin fram
         
         var beginFrame = Frame(command: .BEGIN)
-        send(frame: &beginFrame, using: .utf8)
+        send(frame: &beginFrame)
     }
     
     /**
@@ -176,7 +183,7 @@ public class StompClient: WebSocketChannelDelegate {
         
         if (transaction == nil) {
             var beginFrame = Frame(command: .COMMIT)
-            send(frame: &beginFrame, using: .utf8)
+            send(frame: &beginFrame)
         }
         
         transaction = nil
@@ -189,7 +196,7 @@ public class StompClient: WebSocketChannelDelegate {
         
         if (transaction == nil) {
             var beginFrame = Frame(command: .ABORT)
-            send(frame: &beginFrame, using: .utf8)
+            send(frame: &beginFrame)
         }
         
         transaction = nil
@@ -213,27 +220,32 @@ public class StompClient: WebSocketChannelDelegate {
      *
      */
     public func send(text msg: StompMessage, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
-        send(json: msg.toText(), to: uri, using: encoding, contentType: contentType)
+        send(text: msg.toText(), to: uri, using: encoding, contentType: contentType)
     }
     
     /**
      *
      */
     public func send(text msg: String, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
-        send(data: msg.data(using: encoding!)!, to: uri, using: encoding, contentType: contentType)
+        send(data: msg.data(using: encoding!)!, to: uri, contentType: contentType)
     }
     
     /**
      *
      */
-    public func send(mime data: MimeData, to uri: String) {
+    public func send(image data: UIImage, to uri: String) {
+        if (data.pngData() == nil) {
+            return
+        }
+        
+        send(data: data.pngData()!, to: uri, contentType: "image/png")
         
     }
     
     /**
      *
      */
-    public func send(data: Data, to uri: String, using encoding: String.Encoding? = .utf8, contentType: String = "text/plain") {
+    public func send(data: Data, to uri: String, contentType: String = "text/plain") {
         
         var frame = Frame.sendFrame(to: uri)
 
@@ -247,7 +259,7 @@ public class StompClient: WebSocketChannelDelegate {
     /**
      * Transaction support
      */
-    public func send(frame: inout Frame, using encoding: String.Encoding? = .utf8) {
+    public func send(frame: inout Frame) {
         
         // support transaction
         if (transaction != nil) {
@@ -256,7 +268,6 @@ public class StompClient: WebSocketChannelDelegate {
         
         let frameData = frame.payload
         underlyWebsocket.write(data: frameData)
-        print(String(data: frameData, encoding: encoding!)!)
     }
     
     /// Binary Data Handling
@@ -276,8 +287,9 @@ public class StompClient: WebSocketChannelDelegate {
         handleReceivedFrame(frame: frame!)
     }
     
-    // Handle Frame text from server, update client status or call message handler
-    // according to the content of the frame.
+    /// Handle Frame text from server, update client status or call message handler
+    /// according to the content of the frame.
+    /// - Parameter text: <#text description#>
     func handleRecevedText(text: String) {
         // check
         
@@ -309,8 +321,11 @@ public class StompClient: WebSocketChannelDelegate {
             
         } else if ( frame.isMessage) {
         // if MESSAGE
-        // let message = buildMessage(frame!)
-            _ = messageHandler(frame)
+            let subId = frame.subscriptionId
+            if (subId != nil) {
+                let subscription = subscriptions[subId!]
+                subscription?.messageHandler(frame)
+            }
             
         } else if ( frame.isReceipt) {
         // if RECEIPT

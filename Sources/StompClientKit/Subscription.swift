@@ -12,6 +12,8 @@ public struct Subscription {
     public var subId = generateSubId()
     private static var subscriptionSequence = 1
     
+    public var messageHandler: MessageHandler = {_ in }
+    
     /**
      *
      */
